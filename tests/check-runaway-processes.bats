@@ -243,10 +243,20 @@ HOT="12345 95.0 10240 00:10:00 /usr/bin/runaway"
     grep -q "signal: KILL 12345" "$MOCK_LOG"
 }
 
-@test "'Quit Process' failure (e.g. root-owned) notifies" {
+@test "'Quit Process' failure (e.g. root-owned) notifies and snoozes" {
     answer "Quit Process"
     MOCK_SIGNAL_FAIL=1 run_cycles 2 "$HOT"
     grep -q "display notification.*Couldn't quit" "$MOCK_LOG"
+    grep -q "^12345 " "$SNOOZED"
+}
+
+@test "More → Force kill failure notifies, snoozes and is not logged as killed" {
+    answer "More…" "Force kill now"
+    MOCK_SIGNAL_FAIL=1 run_cycles 2 "$HOT"
+    grep -q "display notification.*Couldn't kill" "$MOCK_LOG"
+    grep -q "^12345 " "$SNOOZED"
+    grep -q "KILL-FAILED pid=12345" "$RUNAWAY_HISTORY_LOG"
+    ! grep -q "KILL pid=12345 (manual)" "$RUNAWAY_HISTORY_LOG"
 }
 
 # --- "More…" actions ---
@@ -450,6 +460,15 @@ HOT="12345 95.0 10240 00:10:00 /usr/bin/runaway"
     grep -q "taskpolicy: -B -p 222" "$MOCK_LOG"
     [ ! -s "$PAUSED" ]
     [ ! -s "$THROTTLED" ]
+}
+
+@test "cli: resume all skips failed pauses (no SIGCONT, no RESUME event)" {
+    mkdir -p "$RUNAWAY_STATE_DIR"
+    echo "400 failed 0 /System/mds_stores" > "$PAUSED"
+    bash "$RUNNER" resume all
+    ! grep -q "signal: CONT 400" "$MOCK_LOG"
+    ! grep -q "RESUME pid=400" "$RUNAWAY_HISTORY_LOG" 2>/dev/null
+    [ ! -s "$PAUSED" ]
 }
 
 @test "cli: status runs and shows thresholds" {

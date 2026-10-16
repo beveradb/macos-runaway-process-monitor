@@ -186,6 +186,8 @@ do_pause() { # pid mode(battery|timed) comm why
 resume_pid() { # pid why
     local fields comm
     fields=$(state_get "$PAUSED" "$1") || return 0
+    # A failed pause never stopped the process: just forget it
+    if [ "${fields%% *}" = failed ]; then state_del "$PAUSED" "$1"; return 0; fi
     comm=${fields#* }; comm=${comm#* }
     signal_proc CONT "$1"
     state_del "$PAUSED" "$1"
@@ -221,6 +223,7 @@ quit_proc() { # pid comm — SIGTERM, then SIGKILL after a grace period
     if ! signal_proc TERM "$1"; then
         log_event "QUIT-FAILED pid=$1 $2"
         notify "Couldn't quit process" "${2##*/} (PID $1) — it may be owned by another user (try: sudo kill $1)"
+        snooze "$1" "$SNOOZE_MINUTES" "$2"
         return
     fi
     local i=0
@@ -287,8 +290,13 @@ handle_more() { # pid comm
         "Always ignore"*)     add_rule ignore "$name" ;;
         "Open Activity Monitor") open -a "Activity Monitor"; snooze "$pid" "$SNOOZE_MINUTES" "$comm" ;;
         "Force kill now")
-            signal_proc KILL "$pid"
-            log_event "KILL pid=$pid (manual) $comm" ;;
+            if signal_proc KILL "$pid"; then
+                log_event "KILL pid=$pid (manual) $comm"
+            else
+                log_event "KILL-FAILED pid=$pid $comm"
+                notify "Couldn't kill process" "$name (PID $pid) — it may be owned by another user (try: sudo kill -9 $pid)"
+                snooze "$pid" "$SNOOZE_MINUTES" "$comm"
+            fi ;;
         *)                    snooze "$pid" "$SNOOZE_MINUTES" "$comm" ;;
     esac
 }
