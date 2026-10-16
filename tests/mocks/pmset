@@ -1,0 +1,7 @@
+#!/bin/bash
+# Mock pmset - MOCK_ON_BATTERY=1 reports battery power
+if [ "${MOCK_ON_BATTERY:-0}" = 1 ]; then
+    echo "Now drawing from 'Battery Power'"
+else
+    echo "Now drawing from 'AC Power'"
+fi

@@ -1,0 +1,5 @@
+#!/bin/bash
+# Mock lsof - returns a fake cwd
+if [[ "$*" == *"-d cwd"* ]]; then
+    echo "n/Users/test/project"
+fi

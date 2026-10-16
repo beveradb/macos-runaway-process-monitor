@@ -1,0 +1,7 @@
+#!/bin/bash
+# Mock top - MOCK_TOP_OUTPUT: lines "pid mem" (e.g. "65210 6877M+")
+echo "Processes: 1 total"
+echo ""
+echo "PID    MEM"
+[ -n "${MOCK_TOP_OUTPUT:-}" ] && echo "$MOCK_TOP_OUTPUT"
+exit 0

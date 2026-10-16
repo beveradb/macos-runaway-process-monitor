@@ -1,0 +1,6 @@
+#!/bin/bash
+# Mock launchctl - logs calls
+echo "launchctl: $*" >> "${MOCK_LOG:-/dev/null}"
+if [ "$1" = "list" ]; then
+    echo "com.beveradb.check-runaway-processes"
+fi

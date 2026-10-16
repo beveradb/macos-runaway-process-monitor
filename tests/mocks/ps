@@ -1,0 +1,14 @@
+#!/bin/bash
+# Mock ps - returns configurable output
+#   MOCK_PS_OUTPUT: process listing lines "pid %cpu rss_kb etime comm"
+if [[ "$*" == *"-p"* ]]; then
+    case "$*" in
+        *args*) echo "${MOCK_PS_ARGS:-/usr/bin/test-process --flag}" ;;
+        *ppid*) echo "${MOCK_PS_PPID:-    1}" ;;
+        *user*) echo "${MOCK_PS_USER:-andrew}" ;;
+        *time*) echo "${MOCK_PS_TIME:-1020:37.86}" ;;
+    esac
+else
+    [ -n "${MOCK_PS_OUTPUT:-}" ] && echo "$MOCK_PS_OUTPUT"
+fi
+exit 0

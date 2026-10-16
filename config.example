@@ -1,0 +1,11 @@
+# Runaway process monitor settings (sourced as bash). Uncomment to override.
+
+# CPU_THRESHOLD=80          # % of one core; 200 = two full cores
+# MEM_THRESHOLD_MB=4096     # memory footprint (as Activity Monitor shows); 0 disables
+# STRIKES_TO_ALERT=2        # consecutive 5-min checks before alerting
+# SNOOZE_MINUTES=60         # "Ignore for now" asks again after this long if still hot
+# PAUSE_MINUTES=60          # length of a one-off "Pause" from the dialog
+# DIALOG_TIMEOUT=120        # seconds before an unanswered dialog gives up (it re-asks next check)
+# IDLE_SECONDS=300          # if you've been idle this long, post a notification instead of a dialog
+# QUIT_GRACE_SECONDS=10     # "Quit Process" waits this long after SIGTERM before SIGKILL
+# SOUND="Funk"              # any name from /System/Library/Sounds
