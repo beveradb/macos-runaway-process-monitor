@@ -278,6 +278,15 @@ HOT="12345 95.0 10240 00:10:00 /usr/bin/runaway"
     [ "$(dialogs)" -eq 1 ]
 }
 
+@test "More → Throttle now failure snoozes and alerts again later" {
+    answer "More…" "Throttle now (background priority)"
+    MOCK_TASKPOLICY_FAIL=1 run_cycles 2 "$HOT"
+    [ ! -s "$THROTTLED" ]
+    grep -q "^12345 " "$SNOOZED"
+    MOCK_NOW=1003700 run_cycle "$HOT"
+    [ "$(dialogs)" -eq 2 ]
+}
+
 @test "More → Always throttle adds rule and throttles" {
     answer "More…" "Always throttle runaway"
     run_cycles 2 "$HOT"
@@ -469,6 +478,14 @@ HOT="12345 95.0 10240 00:10:00 /usr/bin/runaway"
     ! grep -q "signal: CONT 400" "$MOCK_LOG"
     ! grep -q "RESUME pid=400" "$RUNAWAY_HISTORY_LOG" 2>/dev/null
     [ ! -s "$PAUSED" ]
+}
+
+@test "cli: resume rejects a non-numeric PID without touching state" {
+    mkdir -p "$RUNAWAY_STATE_DIR"
+    echo "111 battery 0 /usr/bin/a" > "$PAUSED"
+    run bash "$RUNNER" resume '.*'
+    [ "$status" -eq 1 ]
+    grep -q "^111 " "$PAUSED"
 }
 
 @test "cli: status runs and shows thresholds" {

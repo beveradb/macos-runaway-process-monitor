@@ -157,8 +157,13 @@ do_throttle() { # pid comm why
         log_event "THROTTLE pid=$1 ($3) $2"
         notify "Runaway process throttled" "${2##*/} (PID $1) moved to background priority ($3)"
     else
-        # Remember the failure so we don't retry (and re-notify) every cycle
-        state_set "$THROTTLED" "$1" "$2"
+        if [ "$3" = "rule" ]; then
+            # Remember the failure so the rule doesn't retry (and re-notify) every cycle
+            state_set "$THROTTLED" "$1" "$2"
+        else
+            # Manual throttle failed: keep alerting for it later (it may need quitting instead)
+            snooze "$1" "$SNOOZE_MINUTES" "$2"
+        fi
         log_event "THROTTLE-FAILED pid=$1 $2"
         notify "Couldn't throttle process" "${2##*/} (PID $1) — it may be owned by another user"
     fi
@@ -499,6 +504,7 @@ resume_cmd() {
         # shellcheck disable=SC2013
         for pid in $(cut -d' ' -f1 "$THROTTLED"); do unthrottle_pid "$pid"; echo "Un-throttled $pid"; done
     else
+        case "$target" in *[!0-9]*) echo "Invalid PID: $target" >&2; return 1 ;; esac
         resume_pid "$target" "manual"
         unthrottle_pid "$target"
         signal_proc CONT "$target"
