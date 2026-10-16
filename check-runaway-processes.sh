@@ -10,7 +10,8 @@
 set -u
 
 CONFIG_DIR="${RUNAWAY_CONFIG_DIR:-$HOME/.config/runaway-monitor}"
-STATE_DIR="${RUNAWAY_STATE_DIR:-/tmp/runaway-monitor-$(id -u)}"
+# Per-user, mode-0700 temp dir (not shared /tmp, where another user could pre-create it)
+STATE_DIR="${RUNAWAY_STATE_DIR:-$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null || echo "$HOME/Library/Caches/")runaway-monitor}"
 HISTORY_LOG="${RUNAWAY_HISTORY_LOG:-$HOME/Library/Logs/runaway-monitor.log}"
 
 # --- Defaults (override in $CONFIG_DIR/config) ---
@@ -30,7 +31,7 @@ SOUND="Funk"
 RULES="$CONFIG_DIR/rules"
 STRIKES="$STATE_DIR/strikes"       # pid count
 SNOOZED="$STATE_DIR/snoozed"       # pid until_epoch comm
-PAUSED="$STATE_DIR/paused"         # pid mode until_epoch comm   (mode: battery|timed)
+PAUSED="$STATE_DIR/paused"         # pid mode until_epoch comm   (mode: battery|timed|failed)
 THROTTLED="$STATE_DIR/throttled"   # pid comm
 
 # --- Small helpers (overridable in tests) ---
@@ -175,7 +176,8 @@ do_pause() { # pid mode(battery|timed) comm why
             notify "Process paused" "${3##*/} (PID $1) paused for ${PAUSE_MINUTES} min"
         fi
     else
-        snooze "$1" "$SNOOZE_MINUTES" "$3"
+        # Remember the failure for this PID so we don't retry (and re-notify) every cycle
+        state_set "$PAUSED" "$1" failed 0 "$3"
         log_event "PAUSE-FAILED pid=$1 $3"
         notify "Couldn't pause process" "${3##*/} (PID $1) — it may be owned by another user"
     fi
@@ -376,7 +378,8 @@ process_snapshot() {
 
 
 check() {
-    mkdir -p "$STATE_DIR"
+    # shellcheck disable=SC2174  # only the leaf needs 0700; its parent is already private
+    mkdir -p -m 700 "$STATE_DIR"
     touch "$STRIKES" "$SNOOZED" "$PAUSED" "$THROTTLED"
 
     resume_due
@@ -479,7 +482,8 @@ status() {
 
 resume_cmd() {
     local target=${1:-all} pid
-    mkdir -p "$STATE_DIR"
+    # shellcheck disable=SC2174  # only the leaf needs 0700; its parent is already private
+    mkdir -p -m 700 "$STATE_DIR"
     touch "$PAUSED" "$THROTTLED"
     if [ "$target" = "all" ]; then
         # shellcheck disable=SC2013  # PIDs are single words

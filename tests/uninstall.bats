@@ -71,8 +71,9 @@ teardown() {
     kill -STOP "$pid"
     echo "$pid battery 0 /bin/sleep" > "$RUNAWAY_STATE_DIR/paused"
     bash "$PROJECT_DIR/uninstall.sh"
-    state=$(ps -o stat= -p "$pid")
+    state=$(/bin/ps -o stat= -p "$pid" | tr -d ' ')
     kill "$pid" 2>/dev/null || true
+    [ -n "$state" ]
     [[ "$state" != T* ]]
 }
 

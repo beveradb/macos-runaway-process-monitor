@@ -101,12 +101,12 @@ The check interval is `StartInterval` (seconds) in the launchd plist; stop and s
 launchctl list | grep beveradb                 # loaded? (PID or "-", then last exit status)
 cat /tmp/check-runaway-processes.err           # script errors
 runaway-monitor log                            # what was flagged, and what you chose
-ls /tmp/runaway-monitor-$(id -u)/              # state: strikes, snoozed, paused, throttled
-rm /tmp/runaway-monitor-$(id -u)/snoozed       # un-snooze everything
+ls "$(getconf DARWIN_USER_TEMP_DIR)runaway-monitor"           # state: strikes, snoozed, paused, throttled
+rm "$(getconf DARWIN_USER_TEMP_DIR)runaway-monitor/snoozed"   # un-snooze everything
 plutil -lint ~/Library/LaunchAgents/com.beveradb.check-runaway-processes.plist
 ```
 
-State lives in `/tmp`, so it resets on reboot. If you don't see notifications, check **System Settings → Notifications → Script Editor**.
+State lives in your private per-user temp directory (`getconf DARWIN_USER_TEMP_DIR`); entries for exited processes are pruned every check. If you don't see notifications, check **System Settings → Notifications → Script Editor**.
 
 ## Development
 

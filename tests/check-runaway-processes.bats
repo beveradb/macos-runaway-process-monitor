@@ -351,6 +351,27 @@ HOT="12345 95.0 10240 00:10:00 /usr/bin/runaway"
     [ ! -s "$PAUSED" ]
 }
 
+@test "failed pause-on-battery (e.g. root-owned) notifies once and is not retried" {
+    echo "pause-on-battery mds_stores" > "$RULES"
+    MOCK_ON_BATTERY=1 MOCK_SIGNAL_FAIL=1 run_cycles 3 "400 150.0 10240 01:00:00 /System/mds_stores"
+    [ "$(grep -c "signal: STOP 400" "$MOCK_LOG")" -eq 1 ]
+    [ "$(grep -c "Couldn't pause" "$MOCK_LOG")" -eq 1 ]
+    [ "$(dialogs)" -eq 0 ]
+}
+
+@test "failed pauses are not 'resumed' when back on AC" {
+    mkdir -p "$RUNAWAY_STATE_DIR"
+    echo "400 failed 0 /System/mds_stores" > "$PAUSED"
+    MOCK_ON_BATTERY=0 run_cycle ""
+    ! grep -q "signal: CONT 400" "$MOCK_LOG"
+}
+
+@test "default state dir is the private per-user temp dir, not /tmp" {
+    unset RUNAWAY_STATE_DIR
+    source "$SCRIPT"
+    [[ "$STATE_DIR" == "$(getconf DARWIN_USER_TEMP_DIR)runaway-monitor" ]]
+}
+
 @test "comment lines and blank lines in rules are ignored" {
     printf '# ignore runaway\n\n' > "$RULES"
     run_cycles 2 "$HOT"

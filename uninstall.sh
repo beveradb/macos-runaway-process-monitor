@@ -6,7 +6,7 @@ PLIST_NAME="com.beveradb.check-runaway-processes"
 PLIST_PATH="$HOME/Library/LaunchAgents/${PLIST_NAME}.plist"
 SCRIPT_PATH="$HOME/.local/bin/check-runaway-processes.sh"
 CLI_PATH="$HOME/.local/bin/runaway-monitor"
-STATE_DIR="${RUNAWAY_STATE_DIR:-/tmp/runaway-monitor-$(id -u)}"
+STATE_DIR="${RUNAWAY_STATE_DIR:-$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null || echo "$HOME/Library/Caches/")runaway-monitor}"
 
 echo "Uninstalling macOS Runaway Process Monitor..."
 
