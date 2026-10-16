@@ -1,0 +1,31 @@
+#!/bin/bash
+# Mock ps - returns configurable output
+# Set MOCK_PS_OUTPUT env var to control process listing output
+
+# macOS ps does not support --no-headers; fail like the real one
+if [[ "$*" == *"--no-headers"* ]]; then
+    exit 1
+fi
+
+if [[ "$*" == *"-p"* ]]; then
+    # Single PID lookup — extract which field is requested
+    if [[ "$*" == *"args"* ]]; then
+        echo "${MOCK_PS_ARGS:-/usr/bin/test-process --flag}"
+    elif [[ "$*" == *"ppid"* ]]; then
+        echo "${MOCK_PS_PPID:-    1}"
+    elif [[ "$*" == *"user"* ]]; then
+        echo "${MOCK_PS_USER:-andrew}"
+    elif [[ "$*" == *"%mem"* ]]; then
+        echo "${MOCK_PS_MEM:-  1.2}"
+    elif [[ "$*" == *"%cpu"* ]] || [[ "$*" == *"cpu"* ]]; then
+        echo "${MOCK_PS_CPU:-  95.0}"
+    fi
+else
+    # Process listing — include header so tail -n +2 strips it
+    if [ -n "${MOCK_PS_OUTPUT:-}" ]; then
+        echo "  PID  %CPU      ELAPSED COMM"
+        echo "$MOCK_PS_OUTPUT"
+    else
+        echo "  PID  %CPU      ELAPSED COMM"
+    fi
+fi

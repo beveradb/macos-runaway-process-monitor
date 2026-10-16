@@ -1,0 +1,4 @@
+#!/bin/bash
+# Mock osascript - logs calls instead of showing dialogs
+echo "osascript: $*" >> "${MOCK_LOG:-/dev/null}"
+echo "Ignore"

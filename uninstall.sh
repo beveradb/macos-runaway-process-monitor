@@ -18,6 +18,7 @@ fi
 [ -f "$PLIST_PATH" ] && rm "$PLIST_PATH" && echo "Removed $PLIST_PATH"
 [ -f "$SCRIPT_PATH" ] && rm "$SCRIPT_PATH" && echo "Removed $SCRIPT_PATH"
 [ -f "/tmp/runaway-processes-seen.txt" ] && rm "/tmp/runaway-processes-seen.txt"
+[ -f "/tmp/runaway-processes-strikes.txt" ] && rm "/tmp/runaway-processes-strikes.txt"
 [ -f "/tmp/check-runaway-processes.err" ] && rm "/tmp/check-runaway-processes.err"
 
 echo ""

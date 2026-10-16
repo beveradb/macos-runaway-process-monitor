@@ -1,0 +1,4 @@
+#!/bin/bash
+# Mock kill - always succeeds (pretend the process exists)
+# This prevents the cleanup section from removing test entries
+exit 0
