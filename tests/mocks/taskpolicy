@@ -1,0 +1,5 @@
+#!/bin/bash
+# Mock taskpolicy - logs calls; MOCK_TASKPOLICY_FAIL=1 fails
+echo "taskpolicy: $*" >> "${MOCK_LOG:-/dev/null}"
+[ "${MOCK_TASKPOLICY_FAIL:-0}" = 1 ] && exit 1
+exit 0

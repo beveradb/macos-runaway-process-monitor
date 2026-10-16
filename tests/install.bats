@@ -75,3 +75,44 @@ teardown() {
     bash "$PROJECT_DIR/install.sh"
     grep -q "launchctl: load" "$MOCK_LOG"
 }
+
+@test "install creates runaway-monitor CLI symlink" {
+    bash "$PROJECT_DIR/install.sh"
+    [ -L "$HOME/.local/bin/runaway-monitor" ]
+    [ "$(readlink "$HOME/.local/bin/runaway-monitor")" = "$HOME/.local/bin/check-runaway-processes.sh" ]
+}
+
+@test "install seeds config and rules from examples" {
+    bash "$PROJECT_DIR/install.sh"
+    diff "$PROJECT_DIR/config.example" "$HOME/.config/runaway-monitor/config"
+    diff "$PROJECT_DIR/rules.example" "$HOME/.config/runaway-monitor/rules"
+}
+
+@test "reinstall does not overwrite existing config or rules" {
+    mkdir -p "$HOME/.config/runaway-monitor"
+    echo "CPU_THRESHOLD=150" > "$HOME/.config/runaway-monitor/config"
+    echo "ignore foo" > "$HOME/.config/runaway-monitor/rules"
+    bash "$PROJECT_DIR/install.sh"
+    grep -q "CPU_THRESHOLD=150" "$HOME/.config/runaway-monitor/config"
+    grep -q "^ignore foo$" "$HOME/.config/runaway-monitor/rules"
+}
+
+@test "reinstall unloads the previous agent before loading" {
+    bash "$PROJECT_DIR/install.sh"
+    > "$MOCK_LOG"
+    bash "$PROJECT_DIR/install.sh"
+    [ "$(head -1 "$MOCK_LOG")" = "launchctl: unload $HOME/Library/LaunchAgents/com.beveradb.check-runaway-processes.plist" ]
+    grep -q "launchctl: load" "$MOCK_LOG"
+}
+
+@test "plist passes plutil lint" {
+    bash "$PROJECT_DIR/install.sh"
+    plutil -lint "$HOME/Library/LaunchAgents/com.beveradb.check-runaway-processes.plist"
+}
+
+@test "installed CLI runs help" {
+    bash "$PROJECT_DIR/install.sh"
+    run "$HOME/.local/bin/runaway-monitor" help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"pause-on-battery"* ]]
+}

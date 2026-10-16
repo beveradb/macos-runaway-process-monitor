@@ -11,6 +11,7 @@ setup() {
     export HOME="$TEST_TMP/fakehome"
     mkdir -p "$HOME"
     export MOCK_LOG="$TEST_TMP/mock-calls.log"
+    export RUNAWAY_STATE_DIR="$TEST_TMP/state"
     touch "$MOCK_LOG"
 
     # Use mock launchctl
@@ -56,4 +57,28 @@ teardown() {
 @test "uninstall prints completion message" {
     run bash "$PROJECT_DIR/uninstall.sh"
     [[ "$output" == *"Done"* ]]
+}
+
+@test "uninstall removes the runaway-monitor CLI symlink" {
+    bash "$PROJECT_DIR/uninstall.sh"
+    [ ! -e "$HOME/.local/bin/runaway-monitor" ]
+}
+
+@test "uninstall resumes paused processes before removing the script" {
+    mkdir -p "$RUNAWAY_STATE_DIR"
+    sleep 30 &
+    local pid=$!
+    kill -STOP "$pid"
+    echo "$pid battery 0 /bin/sleep" > "$RUNAWAY_STATE_DIR/paused"
+    bash "$PROJECT_DIR/uninstall.sh"
+    state=$(ps -o stat= -p "$pid")
+    kill "$pid" 2>/dev/null || true
+    [[ "$state" != T* ]]
+}
+
+@test "uninstall removes state dir but keeps config" {
+    mkdir -p "$RUNAWAY_STATE_DIR"
+    bash "$PROJECT_DIR/uninstall.sh"
+    [ ! -d "$RUNAWAY_STATE_DIR" ]
+    [ -f "$HOME/.config/runaway-monitor/rules" ]
 }

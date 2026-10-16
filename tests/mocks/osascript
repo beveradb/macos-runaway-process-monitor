@@ -1,4 +1,11 @@
 #!/bin/bash
-# Mock osascript - logs calls instead of showing dialogs
+# Mock osascript - logs calls; dialog answers come from MOCK_OSA_QUEUE (one per line),
+# falling back to MOCK_OSA_DEFAULT
 echo "osascript: $*" >> "${MOCK_LOG:-/dev/null}"
-echo "Ignore"
+case "$*" in *"display notification"*) exit 0 ;; esac
+if [ -n "${MOCK_OSA_QUEUE:-}" ] && [ -s "$MOCK_OSA_QUEUE" ]; then
+    head -1 "$MOCK_OSA_QUEUE"
+    tail -n +2 "$MOCK_OSA_QUEUE" > "$MOCK_OSA_QUEUE.tmp" && mv "$MOCK_OSA_QUEUE.tmp" "$MOCK_OSA_QUEUE"
+else
+    echo "${MOCK_OSA_DEFAULT:-Ignore for now}"
+fi

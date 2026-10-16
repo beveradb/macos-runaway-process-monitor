@@ -1,0 +1,15 @@
+# Runaway process monitor rules — one per line: <action> <name or glob>
+# The pattern matches the process name (e.g. mediaanalysisd) or its full path.
+# First matching rule wins. Manage with: runaway-monitor ignore|throttle|pause-on-battery|unrule
+#
+# Actions:
+#   ignore            never alert
+#   throttle          when hot, demote to background priority (efficiency cores, low I/O) — no dialog
+#   pause-on-battery  when hot on battery, pause it (SIGSTOP); resume automatically on AC power.
+#                     On AC it's left alone with no alert.
+#
+# Examples:
+# pause-on-battery mediaanalysisd
+# pause-on-battery photoanalysisd
+# throttle mds_stores
+# ignore *ffmpeg*
