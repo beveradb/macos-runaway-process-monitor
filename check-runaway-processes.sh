@@ -15,7 +15,7 @@ HISTORY_LOG="${RUNAWAY_HISTORY_LOG:-$HOME/Library/Logs/runaway-monitor.log}"
 
 # --- Defaults (override in $CONFIG_DIR/config) ---
 CPU_THRESHOLD=80          # % of one core; >100 means multiple cores
-MEM_THRESHOLD_MB=4096     # resident memory; 0 disables the memory check
+MEM_THRESHOLD_MB=4096     # memory footprint (as Activity Monitor shows); 0 disables
 STRIKES_TO_ALERT=2        # consecutive hot cycles before alerting (~10 min)
 SNOOZE_MINUTES=60         # "Ignore" re-alerts after this long if still hot
 PAUSE_MINUTES=60          # duration of a one-off "Pause" from the dialog
@@ -344,24 +344,54 @@ ${cwd:-unknown}"
 
 # --- One monitoring cycle ---
 
+# Prints "pid %cpu mem_mb etime comm" for every process.
+# Memory is the larger of RSS (ps) and the memory footprint from top, which —
+# like Activity Monitor — includes compressed/swapped pages. RSS alone badly
+# under-reports leaks: a 6.9 GB leaking process can show ~190 MB resident.
+process_snapshot() {
+    {
+        top -l 1 -o mem -n 50 -stats pid,mem 2>/dev/null
+        echo "--PS--"
+        ps -axo pid=,%cpu=,rss=,etime=,comm= 2>/dev/null
+    } | awk '
+        !in_ps && $0 == "--PS--" { in_ps = 1; next }
+        !in_ps {
+            if ($1 ~ /^[0-9]+$/ && $2 ~ /^[0-9.]+[BKMG]?[+-]?$/) {
+                m = $2; sub(/[+-]$/, "", m)
+                unit = substr(m, length(m)); v = m + 0
+                if (unit == "G") v *= 1024
+                else if (unit == "K") v /= 1024
+                else if (unit == "B") v /= 1048576
+                footprint[$1] = int(v)
+            }
+            next
+        }
+        {
+            mb = int($3 / 1024)
+            if (($1 in footprint) && footprint[$1] > mb) mb = footprint[$1]
+            $3 = mb
+            print
+        }'
+}
+
+
 check() {
     mkdir -p "$STATE_DIR"
     touch "$STRIKES" "$SNOOZED" "$PAUSED" "$THROTTLED"
 
     resume_due
 
-    local snapshot now hot_pids="" pid cpu rss etime comm cpu_int mem_mb reason action strikes until
-    snapshot=$(ps -axo pid=,%cpu=,rss=,etime=,comm= 2>/dev/null)
+    local snapshot now hot_pids="" pid cpu mem_mb etime comm cpu_int reason action strikes until
+    snapshot=$(process_snapshot)
     now=$(now_epoch)
 
     # Read via fd 3 so dialogs/subcommands can't consume the process list
-    while read -r pid cpu rss etime comm <&3; do
+    while read -r pid cpu mem_mb etime comm <&3; do
         case "$pid" in ''|*[!0-9]*) continue ;; esac
         [ "$pid" = "$$" ] && continue
         cpu_int=${cpu%.*}
         case "$cpu_int" in ''|*[!0-9]*) continue ;; esac
-        case "$rss" in ''|*[!0-9]*) rss=0 ;; esac
-        mem_mb=$((rss / 1024))
+        case "$mem_mb" in ''|*[!0-9]*) mem_mb=0 ;; esac
 
         reason=""
         [ "$cpu_int" -ge "$CPU_THRESHOLD" ] && reason="CPU ${cpu}% (limit ${CPU_THRESHOLD}%)"

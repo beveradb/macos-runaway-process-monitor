@@ -107,6 +107,28 @@ HOT="12345 95.0 10240 00:10:00 /usr/bin/runaway"
     grep -q "memory 6.7 GB" "$MOCK_LOG"
 }
 
+@test "uses top's memory footprint when RSS under-reports (compressed memory)" {
+    # The real case: ps RSS ~188 MB, top footprint 6877M
+    export MOCK_TOP_OUTPUT="65210 6877M+"
+    run_cycles 2 "65210 1.0 192720 02-18:54:07 /System/QLPreviewGenerationExtension"
+    [ "$(dialogs)" -eq 1 ]
+    grep -q "memory 6.7 GB" "$MOCK_LOG"
+}
+
+@test "parses top memory units (G, K) and ignores footprints below threshold" {
+    export MOCK_TOP_OUTPUT="$(printf '111 5G\n222 900K\n333 3000M-')"
+    run_cycles 2 "$(printf '111 1.0 1000 00:10:00 /usr/bin/big\n222 1.0 1000 00:10:00 /usr/bin/tiny\n333 1.0 1000 00:10:00 /usr/bin/mid')"
+    [ "$(dialogs)" -eq 1 ]
+    grep -q "big (PID 111)" "$MOCK_LOG"
+    grep -q "memory 5.0 GB" "$MOCK_LOG"
+}
+
+@test "falls back to RSS when top has no entry for the process" {
+    export MOCK_TOP_OUTPUT=""
+    run_cycles 2 "65210 1.0 7042000 02-18:54:07 /System/QLPreviewGenerationExtension"
+    [ "$(dialogs)" -eq 1 ]
+}
+
 @test "memory check can be disabled with MEM_THRESHOLD_MB=0" {
     echo "MEM_THRESHOLD_MB=0" > "$RUNAWAY_CONFIG_DIR/config"
     run_cycles 2 "65210 1.0 7042000 02-18:54:07 /System/QLPreviewGenerationExtension"

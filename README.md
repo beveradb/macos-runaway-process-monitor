@@ -8,7 +8,7 @@ Born out of frustration with `next-server` processes silently eating 130%+ CPU a
 
 A bash script runs every 5 minutes via macOS `launchd`. Each check it:
 
-1. Lists all processes with their CPU and resident memory (`ps`)
+1. Lists all processes with their CPU (`ps`) and memory footprint (`top` — includes compressed memory, like Activity Monitor; plain RSS badly under-reports leaks)
 2. Flags any process above the CPU threshold (default 80% of a core) **or** the memory threshold (default 4 GB)
 3. Applies your [rules](#rules) first — ignore it, throttle it, or pause it while on battery
 4. Otherwise, after 2 consecutive hot checks (~10 min), shows a dialog with the process details:
@@ -83,7 +83,7 @@ Settings live in `~/.config/runaway-monitor/config` (sourced as bash; uncomment 
 
 ```bash
 CPU_THRESHOLD=80          # % of one core; 200 = two full cores
-MEM_THRESHOLD_MB=4096     # resident memory; 0 disables the memory check
+MEM_THRESHOLD_MB=4096     # memory footprint (as Activity Monitor shows); 0 disables
 STRIKES_TO_ALERT=2        # consecutive 5-min checks before alerting
 SNOOZE_MINUTES=60         # "Ignore for now" asks again after this long if still hot
 PAUSE_MINUTES=60          # length of a one-off "Pause" from the dialog

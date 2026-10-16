@@ -1,7 +1,7 @@
 # Runaway process monitor settings (sourced as bash). Uncomment to override.
 
 # CPU_THRESHOLD=80          # % of one core; 200 = two full cores
-# MEM_THRESHOLD_MB=4096     # resident memory; 0 disables the memory check
+# MEM_THRESHOLD_MB=4096     # memory footprint (as Activity Monitor shows); 0 disables
 # STRIKES_TO_ALERT=2        # consecutive 5-min checks before alerting
 # SNOOZE_MINUTES=60         # "Ignore for now" asks again after this long if still hot
 # PAUSE_MINUTES=60          # length of a one-off "Pause" from the dialog
